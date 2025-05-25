@@ -1,16 +1,23 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const { Configuration, OpenAIApi } = require("openai");
-const faqs = require("./faqs.json");
-require("dotenv").config();
+const OpenAI = require('openai');
+const faqs = require('./faqs.json');
+require('dotenv').config();
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
 
-const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
-const openai = new OpenAIApi(configuration);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 async function getEmbedding(text) {
   const response = await openai.createEmbedding({
-    model: "text-embedding-ada-002",
+    model: 'text-embedding-ada-002',
     input: text,
   });
   return response.data.data[0].embedding;
@@ -41,19 +48,26 @@ client.on('messageCreate', async (message) => {
   );
 
   const bestMatch = faqEmbeddings
-    .map(faq => ({
+    .map((faq) => ({
       question: faq.question,
       answer: faq.answer,
-      score: cosineSimilarity(userEmbedding, faq.embedding)
+      score: cosineSimilarity(userEmbedding, faq.embedding),
     }))
     .sort((a, b) => b.score - a.score)[0];
 
   const gptResponse = await openai.createChatCompletion({
-    model: "gpt-4",
+    model: 'gpt-4',
     messages: [
-      { role: "system", content: "Anda pembantu FAQ sistem tempahan bilik. Jawapan mestilah dalam Bahasa Malaysia dan berdasarkan FAQ berikut." },
-      { role: "assistant", content: `Soalan FAQ: ${bestMatch.question}\nJawapan FAQ: ${bestMatch.answer}` },
-      { role: "user", content: userQuestion }
+      {
+        role: 'system',
+        content:
+          'Anda pembantu FAQ sistem tempahan bilik. Jawapan mestilah dalam Bahasa Malaysia dan berdasarkan FAQ berikut.',
+      },
+      {
+        role: 'assistant',
+        content: `Soalan FAQ: ${bestMatch.question}\nJawapan FAQ: ${bestMatch.answer}`,
+      },
+      { role: 'user', content: userQuestion },
     ],
   });
 
